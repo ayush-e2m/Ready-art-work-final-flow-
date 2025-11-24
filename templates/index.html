@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -56,6 +56,155 @@
             <button onclick="resetForm()" class="retry-btn">Try Again</button>
         </div>
     </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Competitor Web UI UX - Data-Driven Competitive Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header with Steps -->
+    <header class="wizard-header">
+        <div class="container">
+            <div class="brand-section">
+                <div class="brand-icon">3</div>
+                <div class="brand-info">
+                    <h1>Competitor Web UI UX</h1>
+                    <p>Data-Driven Competitive Analysis</p>
+                </div>
+            </div>
+            
+            <div class="steps-navigation">
+                <div class="step active">STEP 1</div>
+                <div class="step">STEP 2</div>
+                <div class="step current">STEP 3</div>
+                <div class="step">STEP 4</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Hero Section -->
+            <section class="hero-section">
+                <h2>Competitor UI/UX Analysis</h2>
+                <p>Analyze and compare your website's user experience against competitors. Get actionable insights to improve conversion rates and user engagement.</p>
+            </section>
+
+            <!-- Analysis Form -->
+            <section class="analysis-form">
+                <div class="form-card">
+                    <div class="form-header">
+                        <h3>Competitor UI/UX Comparison</h3>
+                        <p>Compare your website's user experience against competitors to identify opportunities for improvement. This analysis provides detailed insights into design effectiveness, user journey optimization, and conversion potential.</p>
+                    </div>
+
+                    <form id="competitorForm">
+                        <!-- Primary Website -->
+                        <div class="primary-website">
+                            <div class="website-icon">🎯</div>
+                            <h4>Your Website</h4>
+                            <p class="website-description">The primary website you want to analyze and improve</p>
+                            <input type="url" id="primaryUrl" name="url1" placeholder="https://yoursite.com" required>
+                        </div>
+
+                        <!-- Competitor Websites -->
+                        <div class="competitors-section">
+                            <div class="competitors-header">
+                                <div class="search-icon">🔍</div>
+                                <h4>Competitor Websites</h4>
+                                <span class="optional-badge">OPTIONAL</span>
+                            </div>
+                            <p>Add up to 3 competitor websites to benchmark against your site's performance</p>
+                            
+                            <div class="competitors-grid" id="competitorsGrid">
+                                <div class="competitor-input">
+                                    <div class="competitor-number">1</div>
+                                    <label>Competitor #1</label>
+                                    <input type="url" name="url2" placeholder="https://competitor1.com">
+                                </div>
+                                
+                                <div class="competitor-input">
+                                    <div class="competitor-number">2</div>
+                                    <label>Competitor #2</label>
+                                    <input type="url" name="url3" placeholder="https://competitor2.com">
+                                </div>
+                                
+                                <div class="competitor-input">
+                                    <div class="competitor-number">3</div>
+                                    <label>Competitor #3</label>
+                                    <input type="url" name="url4" placeholder="https://competitor3.com">
+                                </div>
+                            </div>
+                            
+                            <div class="add-more-section">
+                                <button type="button" id="addCompetitorBtn" class="add-competitor-btn">
+                                    <span class="plus-icon">+</span>
+                                    Add Another Competitor
+                                </button>
+                                <p class="limit-text">You can analyze up to 10 websites at once</p>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="action-buttons">
+                            <button type="submit" id="startAnalysisBtn" class="start-analysis-btn">
+                                <span class="btn-icon">🚀</span>
+                                <span id="btnText">Start Competitor Analysis</span>
+                                <div id="btnSpinner" class="btn-spinner" style="display: none;"></div>
+                            </button>
+                            <button type="button" class="stop-analysis-btn" style="display: none;">
+                                <span class="stop-icon">⏸</span>
+                                Stop Analysis
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="progressSection" class="progress-section" style="display: none;">
+                    <div class="progress-card">
+                        <h3>Analyzing Websites...</h3>
+                        <p id="progressStatus">Starting competitive analysis...</p>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <div class="progress-details">
+                            <span id="progressText">0 of 0 completed</span>
+                            <span id="currentUrl">Initializing...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Section -->
+                <div id="errorSection" class="error-section" style="display: none;">
+                    <div class="error-card">
+                        <h3>Analysis Error</h3>
+                        <p id="errorMessage"></p>
+                        <button onclick="resetAnalysis()" class="retry-btn">Try Again</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
