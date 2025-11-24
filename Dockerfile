@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     xvfb \
     ca-certificates \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Google Chrome using modern GPG key method
@@ -18,16 +19,16 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearm
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ChromeDriver manually with proper version matching
-RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d. -f1-3) \
-    && echo "Chrome version: $CHROME_VERSION" \
-    && CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION" || curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE") \
+# Install ChromeDriver using the new Chrome for Testing distribution
+RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d. -f1) \
+    && echo "Chrome major version: $CHROME_VERSION" \
+    && CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_$CHROME_VERSION") \
     && echo "ChromeDriver version: $CHROMEDRIVER_VERSION" \
-    && wget -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip" \
+    && wget -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/$CHROMEDRIVER_VERSION/linux64/chromedriver-linux64.zip" \
     && unzip /tmp/chromedriver.zip -d /tmp/ \
-    && mv /tmp/chromedriver /usr/bin/chromedriver \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/bin/chromedriver \
     && chmod +x /usr/bin/chromedriver \
-    && rm /tmp/chromedriver.zip \
+    && rm -rf /tmp/chromedriver* \
     && chromedriver --version
 
 # Set working directory
@@ -45,7 +46,7 @@ COPY scraper.py .
 COPY templates/ templates/
 COPY static/ static/
 
-# Create non-root user for security but ensure ChromeDriver permissions
+# Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app \
     && chown -R app:app /app
 
