@@ -1,119 +1,146 @@
 let currentSessionId = null;
 let statusCheckInterval = null;
-let urlCounter = 1;
-const maxUrls = 10;
+let competitorCounter = 3;
+const maxCompetitors = 10;
 
-// Initialize the page
+// Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
+    initializeForm();
 });
+
+function initializeForm() {
+    // Focus on primary URL input
+    const primaryInput = document.getElementById('primaryUrl');
+    if (primaryInput) {
+        primaryInput.focus();
+    }
+}
 
 function setupEventListeners() {
     // Form submission
-    document.getElementById('scrapeForm').addEventListener('submit', handleFormSubmit);
+    const form = document.getElementById('competitorForm');
+    if (form) {
+        form.addEventListener('submit', handleFormSubmit);
+    }
     
-    // Add URL button
-    document.getElementById('addUrlBtn').addEventListener('click', addUrlInput);
+    // Add competitor button
+    const addBtn = document.getElementById('addCompetitorBtn');
+    if (addBtn) {
+        addBtn.addEventListener('click', addCompetitorInput);
+    }
 }
 
-function addUrlInput() {
-    if (urlCounter >= maxUrls) {
-        alert(`You can analyze a maximum of ${maxUrls} websites at once.`);
+function addCompetitorInput() {
+    if (competitorCounter >= maxCompetitors) {
+        showNotification(`Maximum of ${maxCompetitors} websites allowed for analysis.`, 'warning');
         return;
     }
     
-    urlCounter++;
-    const urlInputs = document.getElementById('urlInputs');
+    competitorCounter++;
+    const grid = document.getElementById('competitorsGrid');
     
-    // Create new input group
-    const inputGroup = document.createElement('div');
-    inputGroup.className = 'input-group';
-    inputGroup.setAttribute('data-index', urlCounter);
+    // Create new competitor input
+    const competitorDiv = document.createElement('div');
+    competitorDiv.className = 'competitor-input';
+    competitorDiv.setAttribute('data-competitor', competitorCounter);
     
-    inputGroup.innerHTML = `
-        <label for="url${urlCounter}">Website ${urlCounter}:</label>
-        <div class="input-with-controls">
-            <input type="url" id="url${urlCounter}" name="url${urlCounter}" placeholder="https://example.com">
-            <button type="button" class="remove-url-btn" onclick="removeUrlInput(${urlCounter})">
-                <span class="remove-icon">×</span>
-            </button>
-        </div>
+    competitorDiv.innerHTML = `
+        <div class="competitor-number">${competitorCounter}</div>
+        <label>Competitor #${competitorCounter}</label>
+        <input type="url" name="url${competitorCounter + 1}" placeholder="https://competitor${competitorCounter}.com">
+        <button type="button" class="remove-competitor-btn" onclick="removeCompetitorInput(${competitorCounter})">
+            <span class="remove-icon">×</span>
+        </button>
     `;
     
-    urlInputs.appendChild(inputGroup);
+    grid.appendChild(competitorDiv);
     
     // Update add button visibility
-    updateAddButtonVisibility();
+    updateAddButtonState();
     
     // Focus on new input
-    document.getElementById(`url${urlCounter}`).focus();
+    const newInput = competitorDiv.querySelector('input');
+    if (newInput) {
+        newInput.focus();
+    }
+    
+    // Add entrance animation
+    competitorDiv.style.opacity = '0';
+    competitorDiv.style.transform = 'translateY(10px)';
+    setTimeout(() => {
+        competitorDiv.style.transition = 'all 0.3s ease';
+        competitorDiv.style.opacity = '1';
+        competitorDiv.style.transform = 'translateY(0)';
+    }, 50);
 }
 
-function removeUrlInput(index) {
-    const inputGroup = document.querySelector(`[data-index="${index}"]`);
-    if (inputGroup) {
-        inputGroup.remove();
+function removeCompetitorInput(competitorNumber) {
+    const competitorDiv = document.querySelector(`[data-competitor="${competitorNumber}"]`);
+    if (competitorDiv) {
+        // Add exit animation
+        competitorDiv.style.transition = 'all 0.3s ease';
+        competitorDiv.style.opacity = '0';
+        competitorDiv.style.transform = 'translateY(-10px)';
         
-        // Renumber remaining inputs
-        renumberInputs();
-        
-        // Update add button visibility
-        updateAddButtonVisibility();
+        setTimeout(() => {
+            competitorDiv.remove();
+            renumberCompetitors();
+            updateAddButtonState();
+        }, 300);
     }
 }
 
-function renumberInputs() {
-    const inputGroups = document.querySelectorAll('.input-group');
-    urlCounter = 0;
+function renumberCompetitors() {
+    const competitorInputs = document.querySelectorAll('.competitor-input');
+    competitorCounter = 3; // Reset to base count
     
-    inputGroups.forEach((group, index) => {
-        urlCounter = index + 1;
-        const newIndex = urlCounter;
-        
-        // Update data attribute
-        group.setAttribute('data-index', newIndex);
-        
-        // Update label
-        const label = group.querySelector('label');
-        label.textContent = `Website ${newIndex}:`;
-        label.setAttribute('for', `url${newIndex}`);
-        
-        // Update input
-        const input = group.querySelector('input');
-        input.id = `url${newIndex}`;
-        input.name = `url${newIndex}`;
-        
-        // Update remove button if it exists
-        const removeBtn = group.querySelector('.remove-url-btn');
-        if (removeBtn) {
-            removeBtn.setAttribute('onclick', `removeUrlInput(${newIndex})`);
-        }
-        
-        // Make first input required, others optional
-        if (newIndex === 1) {
-            input.required = true;
-            // Remove remove button from first input if it exists
-            if (removeBtn) {
-                removeBtn.remove();
+    competitorInputs.forEach((div, index) => {
+        const actualNumber = index + 1;
+        if (actualNumber > 3) {
+            competitorCounter = actualNumber;
+            div.setAttribute('data-competitor', actualNumber);
+            
+            // Update number display
+            const numberDiv = div.querySelector('.competitor-number');
+            if (numberDiv) {
+                numberDiv.textContent = actualNumber;
             }
-        } else {
-            input.required = false;
+            
+            // Update label
+            const label = div.querySelector('label');
+            if (label) {
+                label.textContent = `Competitor #${actualNumber}`;
+            }
+            
+            // Update input name and placeholder
+            const input = div.querySelector('input');
+            if (input) {
+                input.name = `url${actualNumber + 1}`;
+                input.placeholder = `https://competitor${actualNumber}.com`;
+            }
+            
+            // Update remove button
+            const removeBtn = div.querySelector('.remove-competitor-btn');
+            if (removeBtn) {
+                removeBtn.setAttribute('onclick', `removeCompetitorInput(${actualNumber})`);
+            }
         }
     });
 }
 
-function updateAddButtonVisibility() {
-    const addBtn = document.getElementById('addUrlBtn');
-    const limitText = document.querySelector('.url-limit-text');
+function updateAddButtonState() {
+    const addBtn = document.getElementById('addCompetitorBtn');
+    const limitText = document.querySelector('.limit-text');
     
-    if (urlCounter >= maxUrls) {
+    if (competitorCounter >= maxCompetitors) {
         addBtn.style.display = 'none';
-        limitText.textContent = `Maximum of ${maxUrls} websites reached`;
-        limitText.style.color = '#e53e3e';
+        limitText.textContent = `Maximum of ${maxCompetitors} websites reached`;
+        limitText.style.color = 'var(--warning-orange)';
     } else {
-        addBtn.style.display = 'flex';
-        limitText.textContent = `You can analyze up to ${maxUrls} websites at once`;
-        limitText.style.color = '#718096';
+        addBtn.style.display = 'inline-flex';
+        limitText.textContent = `You can analyze up to ${maxCompetitors} websites at once`;
+        limitText.style.color = 'var(--gray-400)';
     }
 }
 
@@ -123,16 +150,23 @@ async function handleFormSubmit(e) {
     const formData = new FormData(e.target);
     const data = {};
     
-    // Collect all URL inputs dynamically
-    for (let i = 1; i <= urlCounter; i++) {
-        const urlInput = document.getElementById(`url${i}`);
-        if (urlInput) {
-            data[`url${i}`] = urlInput.value || '';
+    // Collect all URL inputs
+    let urlIndex = 1;
+    for (const [key, value] of formData.entries()) {
+        if (key.startsWith('url') && value.trim()) {
+            data[`url${urlIndex}`] = value.trim();
+            urlIndex++;
         }
     }
     
-    // Update UI to show loading state
-    showProgress();
+    // Validate primary URL
+    if (!data.url1) {
+        showNotification('Please enter your primary website URL', 'error');
+        return;
+    }
+    
+    // Show analysis in progress
+    showAnalysisProgress();
     disableForm();
     
     try {
@@ -147,10 +181,11 @@ async function handleFormSubmit(e) {
         const result = await response.json();
         
         if (!response.ok) {
-            throw new Error(result.message || 'Failed to start analysis');
+            throw new Error(result.message || 'Failed to start competitive analysis');
         }
         
         currentSessionId = result.session_id;
+        updateProgress(0, result.total_urls, 'Initializing competitive analysis...');
         startStatusChecking();
         
     } catch (error) {
@@ -159,39 +194,61 @@ async function handleFormSubmit(e) {
     }
 }
 
-function showProgress() {
-    document.getElementById('progressContainer').style.display = 'block';
-    document.getElementById('errorContainer').style.display = 'none';
+function showAnalysisProgress() {
+    document.getElementById('progressSection').style.display = 'block';
+    document.getElementById('errorSection').style.display = 'none';
+    
+    // Scroll to progress section
+    document.getElementById('progressSection').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+    });
 }
 
 function showError(message) {
-    document.getElementById('errorContainer').style.display = 'block';
+    document.getElementById('errorSection').style.display = 'block';
     document.getElementById('errorMessage').textContent = message;
-    document.getElementById('progressContainer').style.display = 'none';
+    document.getElementById('progressSection').style.display = 'none';
+    
+    // Scroll to error section
+    document.getElementById('errorSection').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+    });
+    
+    showNotification(message, 'error');
 }
 
 function disableForm() {
-    document.getElementById('analyzeBtn').disabled = true;
-    document.getElementById('btnText').style.display = 'none';
-    document.getElementById('spinner').style.display = 'inline-block';
+    const startBtn = document.getElementById('startAnalysisBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
     
-    // Disable all inputs and buttons
-    const inputs = document.querySelectorAll('input, button:not(#analyzeBtn)');
+    startBtn.disabled = true;
+    btnText.style.display = 'none';
+    btnSpinner.style.display = 'inline-block';
+    
+    // Disable all inputs
+    const inputs = document.querySelectorAll('input, button:not(#startAnalysisBtn)');
     inputs.forEach(input => input.disabled = true);
 }
 
 function enableForm() {
-    document.getElementById('analyzeBtn').disabled = false;
-    document.getElementById('btnText').style.display = 'inline';
-    document.getElementById('spinner').style.display = 'none';
+    const startBtn = document.getElementById('startAnalysisBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
     
-    // Enable all inputs and buttons
+    startBtn.disabled = false;
+    btnText.style.display = 'inline';
+    btnSpinner.style.display = 'none';
+    
+    // Enable all inputs
     const inputs = document.querySelectorAll('input, button');
     inputs.forEach(input => input.disabled = false);
 }
 
 function startStatusChecking() {
-    statusCheckInterval = setInterval(checkStatus, 2000);
+    statusCheckInterval = setInterval(checkAnalysisStatus, 2000);
 }
 
 function stopStatusChecking() {
@@ -201,56 +258,197 @@ function stopStatusChecking() {
     }
 }
 
-async function checkStatus() {
+async function checkAnalysisStatus() {
     if (!currentSessionId) return;
     
     try {
-        const response = await fetch('/status/' + currentSessionId);
+        const response = await fetch(`/status/${currentSessionId}`);
         const status = await response.json();
         
         if (!response.ok) {
-            throw new Error('Failed to get status');
+            throw new Error('Failed to get analysis status');
         }
         
-        updateProgressUI(status);
+        updateProgress(status.completed, status.total, status.current_url || 'Processing...');
         
         if (status.status === 'completed') {
             stopStatusChecking();
-            // Redirect to results page
-            window.location.href = '/results/' + currentSessionId;
+            showNotification('Competitive analysis completed successfully!', 'success');
+            
+            // Redirect to results with a brief delay
+            setTimeout(() => {
+                window.location.href = `/results/${currentSessionId}`;
+            }, 1500);
+            
         } else if (status.status === 'error') {
             stopStatusChecking();
-            showError(status.error || 'An error occurred during analysis');
+            showError(status.error || 'An error occurred during competitive analysis');
             enableForm();
         }
         
     } catch (error) {
-        console.error('Status check failed:', error);
-        // Continue checking, might be temporary network issue
+        console.warn('Status check failed:', error);
+        // Continue checking - might be temporary network issue
     }
 }
 
-function updateProgressUI(status) {
+function updateProgress(completed, total, currentUrl) {
     const progressFill = document.getElementById('progressFill');
     const progressText = document.getElementById('progressText');
-    const currentStatus = document.getElementById('currentStatus');
+    const progressStatus = document.getElementById('progressStatus');
+    const currentUrlElement = document.getElementById('currentUrl');
     
-    const percentage = status.total > 0 ? (status.completed / status.total) * 100 : 0;
+    const percentage = total > 0 ? (completed / total) * 100 : 0;
     
-    progressFill.style.width = percentage + '%';
-    progressText.textContent = status.completed + ' of ' + status.total + ' completed';
+    if (progressFill) {
+        progressFill.style.width = percentage + '%';
+    }
     
-    if (status.current_url) {
-        currentStatus.textContent = 'Analyzing: ' + status.current_url;
-    } else if (status.status === 'processing') {
-        currentStatus.textContent = 'Processing websites...';
+    if (progressText) {
+        progressText.textContent = `${completed} of ${total} websites analyzed`;
+    }
+    
+    if (currentUrl && currentUrlElement) {
+        if (currentUrl.startsWith('Completed') || currentUrl.includes('completed')) {
+            currentUrlElement.textContent = '✅ Analysis complete';
+        } else if (currentUrl.startsWith('http')) {
+            currentUrlElement.textContent = `🔍 Analyzing: ${extractDomain(currentUrl)}`;
+        } else {
+            currentUrlElement.textContent = currentUrl;
+        }
+    }
+    
+    if (progressStatus) {
+        if (completed === total && total > 0) {
+            progressStatus.textContent = 'Finalizing competitive analysis results...';
+        } else if (completed > 0) {
+            progressStatus.textContent = `Analyzing competitor websites and extracting UI/UX metrics...`;
+        } else {
+            progressStatus.textContent = 'Starting competitive analysis...';
+        }
     }
 }
 
-function resetForm() {
-    document.getElementById('errorContainer').style.display = 'none';
-    document.getElementById('progressContainer').style.display = 'none';
+function extractDomain(url) {
+    try {
+        return new URL(url).hostname.replace('www.', '');
+    } catch {
+        return url;
+    }
+}
+
+function resetAnalysis() {
+    document.getElementById('errorSection').style.display = 'none';
+    document.getElementById('progressSection').style.display = 'none';
     enableForm();
     currentSessionId = null;
     stopStatusChecking();
+    
+    // Reset progress
+    updateProgress(0, 0, '');
 }
+
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">
+                ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
+            </span>
+            <span class="notification-message">${message}</span>
+        </div>
+    `;
+    
+    // Add notification styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'var(--success-green)' : 
+                    type === 'error' ? 'var(--error-red)' : 
+                    type === 'warning' ? 'var(--warning-orange)' : 'var(--primary-blue)'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: var(--shadow-lg);
+        z-index: 1000;
+        opacity: 0;
+        transform: translateX(100px);
+        transition: all 0.3s ease;
+        max-width: 400px;
+        font-weight: 500;
+    `;
+    
+    const contentStyle = `
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    `;
+    
+    notification.querySelector('.notification-content').style.cssText = contentStyle;
+    
+    // Add to DOM
+    document.body.appendChild(notification);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    });
+    
+    // Remove after delay
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100px)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 4000);
+}
+
+// Add CSS for remove competitor buttons
+function addRemoveButtonStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .remove-competitor-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background: var(--error-red);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+        
+        .remove-competitor-btn:hover {
+            background: #d93025;
+            transform: scale(1.1);
+        }
+        
+        .competitor-input {
+            position: relative;
+        }
+        
+        .competitor-input:nth-child(-n+3) .remove-competitor-btn {
+            display: none;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Initialize remove button styles
+document.addEventListener('DOMContentLoaded', addRemoveButtonStyles);
