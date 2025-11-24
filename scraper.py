@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fixed scraper for Mac M4 Pro ARM64 with manual ChromeDriver
+Scraper optimized for Railway deployment with proper ChromeDriver handling
 """
 
 import time
@@ -20,6 +20,7 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 
 RATEMYSITE_URL = "https://www.ratemysite.xyz/"
 DEFAULT_TIMEOUT = 45
@@ -31,68 +32,123 @@ class WebsiteScraper:
         self.driver = None
         
     def _find_chromedriver_path(self):
-        """Find the correct ChromeDriver path for Mac M4 Pro"""
-        # Try common locations for ChromeDriver
-        possible_paths = [
-            "/opt/homebrew/bin/chromedriver",  # Homebrew ARM64 location
-            "/usr/local/bin/chromedriver",      # Homebrew Intel location
-            "/Applications/chromedriver",       # Manual installation
+        """Find the correct ChromeDriver path for the environment"""
+        
+        # For Railway/Docker/Linux environment
+        linux_paths = [
+            "/usr/bin/chromedriver",
+            "/usr/local/bin/chromedriver",
         ]
         
-        # Check if chromedriver is in PATH
-        try:
-            result = subprocess.run(['which', 'chromedriver'], capture_output=True, text=True)
-            if result.returncode == 0 and result.stdout.strip():
-                return result.stdout.strip()
-        except Exception:
-            pass
+        # For Mac development environment
+        mac_paths = [
+            "/opt/homebrew/bin/chromedriver",  # Homebrew ARM64 location
+            "/usr/local/bin/chromedriver",      # Homebrew Intel location
+        ]
         
-        # Check predefined paths
-        for path in possible_paths:
-            if os.path.exists(path) and os.access(path, os.X_OK):
-                return path
-                
+        # Check if we're in a containerized environment (Railway)
+        if os.path.exists('/app') or os.environ.get('RAILWAY_ENVIRONMENT'):
+            print("Detected Railway/Docker environment")
+            
+            # Try to use webdriver-manager first
+            try:
+                driver_path = ChromeDriverManager().install()
+                if os.path.exists(driver_path) and os.access(driver_path, os.X_OK):
+                    print(f"Using ChromeDriver from webdriver-manager: {driver_path}")
+                    return driver_path
+            except Exception as e:
+                print(f"Webdriver-manager failed: {e}")
+            
+            # Fallback to system paths
+            for path in linux_paths:
+                if os.path.exists(path) and os.access(path, os.X_OK):
+                    print(f"Found ChromeDriver at: {path}")
+                    return path
+        
+        else:
+            print("Detected local development environment")
+            # Check if chromedriver is in PATH
+            try:
+                result = subprocess.run(['which', 'chromedriver'], capture_output=True, text=True)
+                if result.returncode == 0 and result.stdout.strip():
+                    path = result.stdout.strip()
+                    print(f"Found ChromeDriver in PATH: {path}")
+                    return path
+            except Exception:
+                pass
+            
+            # Check predefined Mac paths
+            for path in mac_paths:
+                if os.path.exists(path) and os.access(path, os.X_OK):
+                    print(f"Found ChromeDriver at: {path}")
+                    return path
+            
+            # Try webdriver-manager as fallback
+            try:
+                driver_path = ChromeDriverManager().install()
+                if os.path.exists(driver_path) and os.access(driver_path, os.X_OK):
+                    print(f"Using ChromeDriver from webdriver-manager: {driver_path}")
+                    return driver_path
+            except Exception as e:
+                print(f"Webdriver-manager failed: {e}")
+        
         return None
         
     def _setup_driver(self):
-        """Setup Chrome driver with Mac M4 Pro optimizations"""
+        """Setup Chrome driver optimized for Railway deployment"""
         chrome_opts = Options()
         
-        # Chrome options
+        # Essential Chrome options for Railway
         chrome_opts.add_argument("--headless=new")
-        chrome_opts.add_argument("--disable-gpu")
         chrome_opts.add_argument("--no-sandbox")
         chrome_opts.add_argument("--disable-dev-shm-usage")
+        chrome_opts.add_argument("--disable-gpu")
+        chrome_opts.add_argument("--disable-features=VizDisplayCompositor")
         chrome_opts.add_argument("--disable-extensions")
         chrome_opts.add_argument("--disable-plugins")
+        chrome_opts.add_argument("--disable-images")
+        chrome_opts.add_argument("--disable-javascript")  # We don't need JS for text scraping
         chrome_opts.add_argument("--window-size=1920,1080")
-        chrome_opts.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_opts.add_argument("--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        chrome_opts.add_argument("--single-process")
+        chrome_opts.add_argument("--disable-background-timer-throttling")
+        chrome_opts.add_argument("--disable-backgrounding-occluded-windows")
+        chrome_opts.add_argument("--disable-renderer-backgrounding")
         
-        # Find Chrome binary
-        chrome_paths = [
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            "/Applications/Chromium.app/Contents/MacOS/Chromium"
+        # Memory optimizations for Railway
+        chrome_opts.add_argument("--memory-pressure-off")
+        chrome_opts.add_argument("--max_old_space_size=2048")
+        
+        # User agent
+        chrome_opts.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        
+        # Set Chrome binary path
+        chrome_binary_paths = [
+            "/usr/bin/google-chrome-stable",  # Railway/Docker
+            "/usr/bin/google-chrome",
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # Mac
         ]
         
-        for chrome_path in chrome_paths:
+        for chrome_path in chrome_binary_paths:
             if os.path.exists(chrome_path):
                 chrome_opts.binary_location = chrome_path
+                print(f"Using Chrome binary: {chrome_path}")
                 break
         
         # Find ChromeDriver
         chromedriver_path = self._find_chromedriver_path()
         
         if not chromedriver_path:
-            raise Exception("ChromeDriver not found. Please install with: brew install chromedriver")
+            raise Exception("ChromeDriver not found. Please ensure ChromeDriver is installed.")
         
         print(f"Using ChromeDriver at: {chromedriver_path}")
         
         try:
             service = Service(chromedriver_path)
             self.driver = webdriver.Chrome(service=service, options=chrome_opts)
+            print("Chrome browser initialized successfully")
             return WebDriverWait(self.driver, self.timeout)
         except Exception as e:
+            print(f"Failed to initialize Chrome: {e}")
             raise Exception(f"Could not initialize Chrome browser: {str(e)}")
 
     def _find_first(self, xpaths: List[str]) -> Optional[object]:
@@ -197,6 +253,7 @@ class WebsiteScraper:
         except Exception as e:
             result['status'] = 'error'
             result['error'] = f'Failed to initialize browser: {str(e)}'
+            print(f"Browser setup failed: {e}")
             return result
         
         try:
